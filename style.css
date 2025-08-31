@@ -1,0 +1,19 @@
+/* Scrollbar */
+#messages::-webkit-scrollbar { width: 6px; }
+#messages::-webkit-scrollbar-thumb { background-color: rgba(100,100,100,0.5); border-radius: 3px; }
+
+/* Message animations */
+@keyframes slideInRight { from { transform: translateX(100%); opacity:0; } to { transform: translateX(0); opacity:1; } }
+@keyframes slideInLeft { from { transform: translateX(-100%); opacity:0; } to { transform: translateX(0); opacity:1; } }
+.animate-slideInRight { animation: slideInRight 0.3s ease; }
+.animate-slideInLeft { animation: slideInLeft 0.3s ease; }
+
+/* Typing indicator */
+.typing { font-style: italic; opacity: 0.7; }
+
+/* Quick replies */
+#quickReplies button { transition: all 0.2s ease; }
+#quickReplies button:hover { transform: scale(1.05); }
+
+/* Footer styling */
+footer { text-align: center; color: #9ca3af; font-size: 0.75rem; padding: 6px 0; }
