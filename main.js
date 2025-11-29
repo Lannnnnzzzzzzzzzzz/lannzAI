@@ -1,12 +1,17 @@
 import { createClient } from '@supabase/supabase-js';
+import { renderMarkdown } from './utils/markdown.js';
+import { saveTemplate, getTemplates, deleteTemplate, exportChatAsJSON, exportChatAsTXT } from './utils/storage.js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_SUPABASE_ANON_KEY;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 let currentChatId = null;
 let messageHistory = [];
 let isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+let allChats = [];
+let selectedChatForMenu = null;
+let currentStreamController = null;
 
 const elements = {
   welcomeScreen: document.getElementById('welcomeScreen'),
@@ -17,7 +22,14 @@ const elements = {
   chatHistory: document.getElementById('chatHistory'),
   menuToggle: document.getElementById('menuToggle'),
   themeToggle: document.getElementById('themeToggle'),
-  chatContainer: document.getElementById('chatContainer')
+  chatContainer: document.getElementById('chatContainer'),
+  searchInput: document.getElementById('searchInput'),
+  templatesBtn: document.getElementById('templatesBtn'),
+  exportBtn: document.getElementById('exportBtn'),
+  templatesModal: document.getElementById('templatesModal'),
+  addTemplateModal: document.getElementById('addTemplateModal'),
+  exportModal: document.getElementById('exportModal'),
+  contextMenu: document.getElementById('contextMenu')
 };
 
 function initTheme() {
@@ -65,7 +77,200 @@ document.querySelectorAll('.suggestion-card').forEach(card => {
   });
 });
 
+elements.searchInput.addEventListener('input', (e) => {
+  filterChatHistory(e.target.value);
+});
+
+elements.templatesBtn.addEventListener('click', () => {
+  openTemplatesModal();
+});
+
+elements.exportBtn.addEventListener('click', () => {
+  if (!currentChatId) {
+    alert('Tidak ada chat yang aktif untuk di-export');
+    return;
+  }
+  elements.exportModal.classList.add('active');
+});
+
+document.getElementById('closeTemplatesModal').addEventListener('click', () => {
+  elements.templatesModal.classList.remove('active');
+});
+
+document.getElementById('closeAddTemplateModal').addEventListener('click', () => {
+  elements.addTemplateModal.classList.remove('active');
+});
+
+document.getElementById('closeExportModal').addEventListener('click', () => {
+  elements.exportModal.classList.remove('active');
+});
+
+document.getElementById('addTemplateBtn').addEventListener('click', () => {
+  elements.addTemplateModal.classList.add('active');
+});
+
+document.getElementById('cancelAddTemplate').addEventListener('click', () => {
+  elements.addTemplateModal.classList.remove('active');
+});
+
+document.getElementById('saveTemplate').addEventListener('click', () => {
+  const name = document.getElementById('templateName').value.trim();
+  const content = document.getElementById('templateContent').value.trim();
+
+  if (!name || !content) {
+    alert('Nama dan prompt harus diisi');
+    return;
+  }
+
+  saveTemplate(name, content);
+  document.getElementById('templateName').value = '';
+  document.getElementById('templateContent').value = '';
+  elements.addTemplateModal.classList.remove('active');
+  openTemplatesModal();
+});
+
+document.getElementById('exportJSON').addEventListener('click', async () => {
+  const chat = allChats.find(c => c.id === currentChatId);
+  if (chat) {
+    exportChatAsJSON(chat);
+    elements.exportModal.classList.remove('active');
+  }
+});
+
+document.getElementById('exportTXT').addEventListener('click', async () => {
+  const chat = allChats.find(c => c.id === currentChatId);
+  if (chat) {
+    exportChatAsTXT(chat);
+    elements.exportModal.classList.remove('active');
+  }
+});
+
+document.addEventListener('click', (e) => {
+  if (!elements.contextMenu.contains(e.target)) {
+    elements.contextMenu.classList.remove('active');
+  }
+});
+
+document.getElementById('renameChat').addEventListener('click', async () => {
+  if (!selectedChatForMenu) return;
+
+  const newTitle = prompt('Nama chat baru:', selectedChatForMenu.title);
+  if (newTitle && newTitle.trim()) {
+    try {
+      const { error } = await supabase
+        .from('chats')
+        .update({ title: newTitle.trim() })
+        .eq('id', selectedChatForMenu.id);
+
+      if (error) throw error;
+      await loadChatHistory();
+    } catch (error) {
+      console.error('Error renaming chat:', error);
+      alert('Gagal rename chat');
+    }
+  }
+  elements.contextMenu.classList.remove('active');
+});
+
+document.getElementById('deleteChat').addEventListener('click', async () => {
+  if (!selectedChatForMenu) return;
+
+  if (confirm('Yakin ingin menghapus chat ini?')) {
+    try {
+      const { error } = await supabase
+        .from('chats')
+        .delete()
+        .eq('id', selectedChatForMenu.id);
+
+      if (error) throw error;
+
+      if (currentChatId === selectedChatForMenu.id) {
+        startNewChat();
+      }
+      await loadChatHistory();
+    } catch (error) {
+      console.error('Error deleting chat:', error);
+      alert('Gagal menghapus chat');
+    }
+  }
+  elements.contextMenu.classList.remove('active');
+});
+
+function openTemplatesModal() {
+  const templates = getTemplates();
+  const templatesList = document.getElementById('templatesList');
+
+  if (templates.length === 0) {
+    templatesList.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 20px;">Belum ada template</p>';
+  } else {
+    templatesList.innerHTML = templates.map(t => `
+      <div class="template-item" data-id="${t.id}">
+        <div class="template-name">${t.name}</div>
+        <div class="template-content">${t.content}</div>
+        <div class="template-actions">
+          <button class="action-btn use-template">Gunakan</button>
+          <button class="action-btn delete-template">Hapus</button>
+        </div>
+      </div>
+    `).join('');
+
+    document.querySelectorAll('.use-template').forEach((btn, idx) => {
+      btn.addEventListener('click', () => {
+        elements.userInput.value = templates[idx].content;
+        elements.sendBtn.disabled = false;
+        elements.templatesModal.classList.remove('active');
+      });
+    });
+
+    document.querySelectorAll('.delete-template').forEach((btn, idx) => {
+      btn.addEventListener('click', () => {
+        if (confirm('Hapus template ini?')) {
+          deleteTemplate(templates[idx].id);
+          openTemplatesModal();
+        }
+      });
+    });
+  }
+
+  elements.templatesModal.classList.add('active');
+}
+
+function filterChatHistory(query) {
+  const filtered = query
+    ? allChats.filter(chat => chat.title.toLowerCase().includes(query.toLowerCase()))
+    : allChats;
+
+  renderChatHistory(filtered);
+}
+
+function renderChatHistory(chats) {
+  elements.chatHistory.innerHTML = '';
+  chats.forEach(chat => {
+    const item = document.createElement('div');
+    item.className = 'history-item';
+    if (chat.id === currentChatId) {
+      item.classList.add('active');
+    }
+    item.textContent = chat.title;
+    item.onclick = () => loadChat(chat);
+
+    item.oncontextmenu = (e) => {
+      e.preventDefault();
+      selectedChatForMenu = chat;
+      elements.contextMenu.style.left = e.pageX + 'px';
+      elements.contextMenu.style.top = e.pageY + 'px';
+      elements.contextMenu.classList.add('active');
+    };
+
+    elements.chatHistory.appendChild(item);
+  });
+}
+
 function startNewChat() {
+  if (currentStreamController) {
+    currentStreamController.abort();
+    currentStreamController = null;
+  }
   currentChatId = null;
   messageHistory = [];
   elements.messages.innerHTML = '';
@@ -75,23 +280,48 @@ function startNewChat() {
   });
 }
 
-async function sendMessage() {
-  const text = elements.userInput.value.trim();
-  if (!text) return;
+async function sendMessage(regenerate = false) {
+  let text = elements.userInput.value.trim();
+
+  if (regenerate && messageHistory.length > 0) {
+    messageHistory.pop();
+    const lastMessage = elements.messages.lastChild;
+    if (lastMessage && lastMessage.classList.contains('bot')) {
+      lastMessage.remove();
+    }
+  } else if (!text) {
+    return;
+  }
 
   if (!currentChatId) {
     currentChatId = crypto.randomUUID();
     elements.welcomeScreen.style.display = 'none';
   }
 
-  addMessage(text, 'user');
-  messageHistory.push({ role: 'user', content: text });
+  if (!regenerate) {
+    addMessage(text, 'user');
+    messageHistory.push({ role: 'user', content: text });
+    elements.userInput.value = '';
+    elements.userInput.style.height = 'auto';
+  }
 
-  elements.userInput.value = '';
-  elements.userInput.style.height = 'auto';
   elements.sendBtn.disabled = true;
 
-  const typingIndicator = showTypingIndicator();
+  const messageDiv = document.createElement('div');
+  messageDiv.className = 'message bot';
+
+  const avatar = document.createElement('div');
+  avatar.className = 'message-avatar';
+  avatar.textContent = '🤖';
+
+  const content = document.createElement('div');
+  content.className = 'message-content';
+
+  messageDiv.appendChild(avatar);
+  messageDiv.appendChild(content);
+  elements.messages.appendChild(messageDiv);
+
+  currentStreamController = new AbortController();
 
   try {
     const response = await fetch(`${supabaseUrl}/functions/v1/chat`, {
@@ -102,25 +332,62 @@ async function sendMessage() {
       },
       body: JSON.stringify({
         messages: messageHistory,
-        chatId: currentChatId
-      })
+        chatId: currentChatId,
+        stream: true
+      }),
+      signal: currentStreamController.signal
     });
 
-    const data = await response.json();
-    typingIndicator.remove();
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
 
-    if (data.reply) {
-      addMessage(data.reply, 'bot');
-      messageHistory.push({ role: 'assistant', content: data.reply });
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value);
+      const lines = chunk.split('\n');
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          if (data === '[DONE]') continue;
+
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.content) {
+              fullText += parsed.content;
+              content.innerHTML = renderMarkdown(fullText);
+              elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
+            }
+          } catch (e) {
+            console.error('Parse error:', e);
+          }
+        }
+      }
+    }
+
+    if (fullText) {
+      messageHistory.push({ role: 'assistant', content: fullText });
+      addMessageActions(messageDiv);
       await saveChatToSupabase();
       await loadChatHistory();
-    } else {
-      addMessage('Maaf, terjadi kesalahan. Silakan coba lagi.', 'bot');
     }
   } catch (error) {
-    console.error('Error:', error);
-    typingIndicator.remove();
-    addMessage('Maaf, tidak dapat terhubung ke server. Silakan coba lagi.', 'bot');
+    if (error.name === 'AbortError') {
+      console.log('Stream aborted');
+    } else {
+      console.error('Error:', error);
+      content.textContent = 'Maaf, tidak dapat terhubung ke server. Silakan coba lagi.';
+    }
+  } finally {
+    elements.sendBtn.disabled = false;
+    currentStreamController = null;
   }
 }
 
@@ -134,34 +401,46 @@ function addMessage(text, sender) {
 
   const content = document.createElement('div');
   content.className = 'message-content';
-  content.textContent = text;
+
+  if (sender === 'bot') {
+    content.innerHTML = renderMarkdown(text);
+  } else {
+    content.textContent = text;
+  }
 
   messageDiv.appendChild(avatar);
   messageDiv.appendChild(content);
-  elements.messages.appendChild(messageDiv);
 
+  if (sender === 'bot') {
+    addMessageActions(messageDiv);
+  }
+
+  elements.messages.appendChild(messageDiv);
   elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
 }
 
-function showTypingIndicator() {
-  const messageDiv = document.createElement('div');
-  messageDiv.className = 'message bot';
+function addMessageActions(messageDiv) {
+  const actions = document.createElement('div');
+  actions.className = 'message-actions';
 
-  const avatar = document.createElement('div');
-  avatar.className = 'message-avatar';
-  avatar.textContent = '🤖';
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'action-btn';
+  copyBtn.textContent = 'Copy';
+  copyBtn.onclick = () => {
+    const content = messageDiv.querySelector('.message-content');
+    navigator.clipboard.writeText(content.textContent);
+    copyBtn.textContent = 'Copied!';
+    setTimeout(() => copyBtn.textContent = 'Copy', 2000);
+  };
 
-  const typingDiv = document.createElement('div');
-  typingDiv.className = 'typing-indicator';
-  typingDiv.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+  const regenerateBtn = document.createElement('button');
+  regenerateBtn.className = 'action-btn';
+  regenerateBtn.textContent = 'Regenerate';
+  regenerateBtn.onclick = () => sendMessage(true);
 
-  messageDiv.appendChild(avatar);
-  messageDiv.appendChild(typingDiv);
-  elements.messages.appendChild(messageDiv);
-
-  elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
-
-  return messageDiv;
+  actions.appendChild(copyBtn);
+  actions.appendChild(regenerateBtn);
+  messageDiv.appendChild(actions);
 }
 
 async function saveChatToSupabase() {
@@ -192,27 +471,23 @@ async function loadChatHistory() {
       .from('chats')
       .select('*')
       .order('updated_at', { ascending: false })
-      .limit(20);
+      .limit(50);
 
     if (error) throw error;
 
-    elements.chatHistory.innerHTML = '';
-    data.forEach(chat => {
-      const item = document.createElement('div');
-      item.className = 'history-item';
-      if (chat.id === currentChatId) {
-        item.classList.add('active');
-      }
-      item.textContent = chat.title;
-      item.onclick = () => loadChat(chat);
-      elements.chatHistory.appendChild(item);
-    });
+    allChats = data;
+    renderChatHistory(data);
   } catch (error) {
     console.error('Error loading chat history:', error);
   }
 }
 
 async function loadChat(chat) {
+  if (currentStreamController) {
+    currentStreamController.abort();
+    currentStreamController = null;
+  }
+
   currentChatId = chat.id;
   messageHistory = chat.messages || [];
   elements.messages.innerHTML = '';
