@@ -511,7 +511,9 @@ body {
 
 .message-actions {
   display: flex;
-  gap: 4px;
+  flex-direction: row;
+  align-items: center;
+  gap: 2px;
   margin-top: 8px;
   margin-bottom: -4px;
   opacity: 0;
@@ -523,7 +525,7 @@ body {
 }
 
 .action-btn {
-  padding: 4px 8px;
+  padding: 6px;
   background: transparent;
   border: none;
   border-radius: 6px;
@@ -531,15 +533,17 @@ body {
   cursor: pointer;
   font-size: 12px;
   transition: all 0.2s;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-weight: 400;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  flex-shrink: 0;
 }
 
 .action-btn svg {
   flex-shrink: 0;
-  opacity: 0.7;
+  opacity: 0.8;
 }
 
 .action-btn:hover {
