@@ -3,100 +3,107 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ultimate Chatbot Lnnz</title>
-<script src="https://cdn.tailwindcss.com"></script>
+<title>LannZAi - AI Assistant</title>
 <link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🤖</text></svg>">
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 flex flex-col h-screen transition-colors">
+<body>
+  <div class="app-container">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <button class="new-chat-btn" id="newChatBtn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Chat Baru
+        </button>
+      </div>
+      <div class="chat-history" id="chatHistory"></div>
+      <div class="sidebar-footer">
+        <div class="user-profile">
+          <div class="avatar">L</div>
+          <span>LannZAi User</span>
+        </div>
+      </div>
+    </aside>
 
-<div id="chatContainer" class="flex-1 flex flex-col max-w-md mx-auto mt-5 bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden resize-x">
-    <div id="messages" class="flex-1 p-4 overflow-y-auto space-y-2"></div>
+    <main class="main-content">
+      <header class="chat-header">
+        <button class="menu-toggle" id="menuToggle">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <h1 class="chat-title">LannZAi</h1>
+        <button class="theme-toggle" id="themeToggle">
+          <svg class="sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <svg class="moon-icon hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+      </header>
 
-    <div id="quickReplies" class="flex gap-2 p-2 overflow-x-auto"></div>
+      <div class="chat-container" id="chatContainer">
+        <div class="welcome-screen" id="welcomeScreen">
+          <div class="logo-container">
+            <div class="logo">🤖</div>
+            <h2>LannZAi</h2>
+          </div>
+          <p class="welcome-text">Halo! Saya LannZAi, asisten AI Anda. Bagaimana saya bisa membantu hari ini?</p>
+          <div class="suggestion-cards">
+            <button class="suggestion-card" data-prompt="Jelaskan tentang kecerdasan buatan">
+              <div class="suggestion-icon">💡</div>
+              <div class="suggestion-text">Jelaskan tentang AI</div>
+            </button>
+            <button class="suggestion-card" data-prompt="Berikan tips produktivitas">
+              <div class="suggestion-icon">⚡</div>
+              <div class="suggestion-text">Tips produktivitas</div>
+            </button>
+            <button class="suggestion-card" data-prompt="Bantu saya belajar coding">
+              <div class="suggestion-icon">💻</div>
+              <div class="suggestion-text">Belajar coding</div>
+            </button>
+            <button class="suggestion-card" data-prompt="Ceritakan hal menarik">
+              <div class="suggestion-icon">✨</div>
+              <div class="suggestion-text">Hal menarik</div>
+            </button>
+          </div>
+        </div>
+        <div class="messages" id="messages"></div>
+      </div>
 
-    <div class="flex border-t border-gray-300 dark:border-gray-700 p-2">
-        <textarea id="userInput" placeholder="Tulis pesan..." class="flex-1 px-4 py-2 rounded-l-xl border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
-        <button onclick="sendMessage()" class="bg-blue-500 text-white px-4 rounded-r-xl hover:bg-blue-600">Kirim</button>
-    </div>
-</div>
+      <div class="input-container">
+        <div class="input-wrapper">
+          <textarea
+            id="userInput"
+            placeholder="Kirim pesan ke LannZAi..."
+            rows="1"
+          ></textarea>
+          <button class="send-btn" id="sendBtn" disabled>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </div>
+        <p class="input-hint">LannZAi dapat membuat kesalahan. Verifikasi informasi penting.</p>
+      </div>
+    </main>
+  </div>
 
-<footer class="text-center text-gray-400 dark:text-gray-500 text-xs mt-2">Lnnzphry || 2025</footer>
-
-<script>
-const personas = ["Friendly","Formal","Fun"];
-let currentPersona = "Friendly";
-const quickReplies = ["Halo","Bantuan","Jadwal"];
-const messagesEl = document.getElementById('messages');
-const inputEl = document.getElementById('userInput');
-const quickEl = document.getElementById('quickReplies');
-
-// Quick replies
-quickReplies.forEach(q=>{
-    const btn = document.createElement('button');
-    btn.innerText = q;
-    btn.className="bg-gray-200 dark:bg-gray-700 px-3 py-1 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600";
-    btn.onclick=()=>{inputEl.value=q;sendMessage();};
-    quickEl.appendChild(btn);
-});
-
-// Load chat history
-const history = JSON.parse(localStorage.getItem('chatHistory')||'[]');
-history.forEach(msg=>addMessage(msg.text,msg.sender));
-
-// Send message
-async function sendMessage(){
-    const text = inputEl.value.trim();
-    if(!text) return;
-    if(text==="/clear"){localStorage.removeItem('chatHistory');messagesEl.innerHTML="";inputEl.value="";return;}
-
-    addMessage(text,'user',true);
-    saveHistory(text,'user');
-    inputEl.value="";
-
-    const typingEl = addMessage("Bot sedang mengetik...",'bot',true);
-
-    try{
-        const response = await fetch('/api/chat',{
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({prompt:text, persona: currentPersona})
-        });
-        const data = await response.json();
-        typingEl.remove();
-        addMessage(data.reply||"Bot tidak merespon",'bot');
-        saveHistory(data.reply||"Bot tidak merespon",'bot');
-    }catch(e){
-        typingEl.remove();
-        addMessage("Error: Tidak bisa terhubung ke server",'bot');
-        saveHistory("Error: Tidak bisa terhubung ke server",'bot');
-    }
-}
-
-// Add message helper
-function addMessage(text,sender,isTyping=false){
-    const msg=document.createElement('div');
-    msg.className=`flex px-4 py-2 max-w-[80%] rounded-2xl ${sender==='user'?'bg-blue-500 text-white self-end rounded-br-none animate-slideInRight':'bg-gray-200 text-black dark:bg-gray-700 dark:text-white self-start rounded-bl-none animate-slideInLeft'} ${isTyping?'italic opacity-70':''}`;
-    msg.innerHTML=text;
-    messagesEl.appendChild(msg);
-    messagesEl.scrollTop=messagesEl.scrollHeight;
-    return isTyping?msg:null;
-}
-
-// Save chat history
-function saveHistory(text,sender){
-    const h=JSON.parse(localStorage.getItem('chatHistory')||'[]');
-    h.push({text,sender});
-    localStorage.setItem('chatHistory',JSON.stringify(h));
-}
-
-// Multi-line input
-inputEl.addEventListener('keydown',function(e){
-    if(e.key==='Enter' && !e.shiftKey){e.preventDefault();sendMessage();}
-});
-
-// Dark/Light mode auto
-if(window.matchMedia('(prefers-color-scheme: dark)').matches){document.body.classList.add('dark');}
-else{document.body.classList.remove('dark');}
-</script>
+  <script type="module" src="/main.js"></script>
 </body>
 </html>
