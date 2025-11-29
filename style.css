@@ -509,8 +509,8 @@ body {
 
 .message-actions {
   display: flex;
-  gap: 4px;
-  margin-top: 8px;
+  gap: 6px;
+  margin-top: 12px;
   opacity: 0;
   transition: opacity 0.2s;
 }
@@ -520,20 +520,33 @@ body {
 }
 
 .action-btn {
-  padding: 4px 8px;
-  background: var(--bg-secondary);
+  padding: 6px 12px;
+  background: transparent;
   border: 1px solid var(--border-color);
-  border-radius: 4px;
-  color: var(--text-secondary);
+  border-radius: 6px;
+  color: var(--text-primary);
   cursor: pointer;
-  font-size: 12px;
+  font-size: 13px;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+}
+
+.action-btn svg {
+  flex-shrink: 0;
 }
 
 .action-btn:hover {
-  background: var(--accent-color);
+  background: var(--bg-secondary);
+  border-color: var(--text-secondary);
+}
+
+.action-btn.copy-btn:hover {
+  background: #10a37f;
   color: white;
-  border-color: var(--accent-color);
+  border-color: #10a37f;
 }
 
 .message-content pre {

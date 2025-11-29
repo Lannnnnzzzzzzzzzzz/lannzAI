@@ -424,18 +424,42 @@ function addMessageActions(messageDiv) {
   actions.className = 'message-actions';
 
   const copyBtn = document.createElement('button');
-  copyBtn.className = 'action-btn';
-  copyBtn.textContent = 'Copy';
+  copyBtn.className = 'action-btn copy-btn';
+  copyBtn.innerHTML = `
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+    </svg>
+    <span>Copy</span>
+  `;
   copyBtn.onclick = () => {
     const content = messageDiv.querySelector('.message-content');
     navigator.clipboard.writeText(content.textContent);
-    copyBtn.textContent = 'Copied!';
-    setTimeout(() => copyBtn.textContent = 'Copy', 2000);
+    copyBtn.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+      <span>Copied!</span>
+    `;
+    setTimeout(() => {
+      copyBtn.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+        <span>Copy</span>
+      `;
+    }, 2000);
   };
 
   const regenerateBtn = document.createElement('button');
   regenerateBtn.className = 'action-btn';
-  regenerateBtn.textContent = 'Regenerate';
+  regenerateBtn.innerHTML = `
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"></path>
+    </svg>
+    <span>Regenerate</span>
+  `;
   regenerateBtn.onclick = () => sendMessage(true);
 
   actions.appendChild(copyBtn);
