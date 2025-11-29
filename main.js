@@ -399,6 +399,9 @@ function addMessage(text, sender) {
   avatar.className = 'message-avatar';
   avatar.textContent = sender === 'user' ? '👤' : '🤖';
 
+  const contentWrapper = document.createElement('div');
+  contentWrapper.className = 'message-content-wrapper';
+
   const content = document.createElement('div');
   content.className = 'message-content';
 
@@ -408,18 +411,21 @@ function addMessage(text, sender) {
     content.textContent = text;
   }
 
-  messageDiv.appendChild(avatar);
-  messageDiv.appendChild(content);
+  contentWrapper.appendChild(content);
 
   if (sender === 'bot') {
-    addMessageActions(messageDiv);
+    const actions = createMessageActions(messageDiv);
+    contentWrapper.appendChild(actions);
   }
+
+  messageDiv.appendChild(avatar);
+  messageDiv.appendChild(contentWrapper);
 
   elements.messages.appendChild(messageDiv);
   elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
 }
 
-function addMessageActions(messageDiv) {
+function createMessageActions(messageDiv) {
   const actions = document.createElement('div');
   actions.className = 'message-actions';
 
@@ -512,7 +518,8 @@ function addMessageActions(messageDiv) {
   actions.appendChild(shareBtn);
   actions.appendChild(regenerateBtn);
   actions.appendChild(moreBtn);
-  messageDiv.appendChild(actions);
+
+  return actions;
 }
 
 async function saveChatToSupabase() {
