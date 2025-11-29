@@ -423,14 +423,15 @@ function addMessageActions(messageDiv) {
   const actions = document.createElement('div');
   actions.className = 'message-actions';
 
+  // Copy button
   const copyBtn = document.createElement('button');
-  copyBtn.className = 'action-btn copy-btn';
+  copyBtn.className = 'action-btn';
+  copyBtn.title = 'Copy';
   copyBtn.innerHTML = `
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
     </svg>
-    <span>Copy</span>
   `;
   copyBtn.onclick = () => {
     const content = messageDiv.querySelector('.message-content');
@@ -439,7 +440,6 @@ function addMessageActions(messageDiv) {
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <polyline points="20 6 9 17 4 12"></polyline>
       </svg>
-      <span>Copied!</span>
     `;
     setTimeout(() => {
       copyBtn.innerHTML = `
@@ -447,23 +447,71 @@ function addMessageActions(messageDiv) {
           <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
           <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
         </svg>
-        <span>Copy</span>
       `;
     }, 2000);
   };
 
+  // Like button
+  const likeBtn = document.createElement('button');
+  likeBtn.className = 'action-btn';
+  likeBtn.title = 'Good response';
+  likeBtn.innerHTML = `
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+    </svg>
+  `;
+
+  // Dislike button
+  const dislikeBtn = document.createElement('button');
+  dislikeBtn.className = 'action-btn';
+  dislikeBtn.title = 'Bad response';
+  dislikeBtn.innerHTML = `
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"></path>
+    </svg>
+  `;
+
+  // Share button
+  const shareBtn = document.createElement('button');
+  shareBtn.className = 'action-btn';
+  shareBtn.title = 'Share';
+  shareBtn.innerHTML = `
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+      <polyline points="16 6 12 2 8 6"></polyline>
+      <line x1="12" y1="2" x2="12" y2="15"></line>
+    </svg>
+  `;
+
+  // Regenerate button
   const regenerateBtn = document.createElement('button');
   regenerateBtn.className = 'action-btn';
+  regenerateBtn.title = 'Regenerate';
   regenerateBtn.innerHTML = `
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"></path>
     </svg>
-    <span>Regenerate</span>
   `;
   regenerateBtn.onclick = () => sendMessage(true);
 
+  // More button
+  const moreBtn = document.createElement('button');
+  moreBtn.className = 'action-btn';
+  moreBtn.title = 'More';
+  moreBtn.innerHTML = `
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="1"></circle>
+      <circle cx="19" cy="12" r="1"></circle>
+      <circle cx="5" cy="12" r="1"></circle>
+    </svg>
+  `;
+
   actions.appendChild(copyBtn);
+  actions.appendChild(likeBtn);
+  actions.appendChild(dislikeBtn);
+  actions.appendChild(shareBtn);
   actions.appendChild(regenerateBtn);
+  actions.appendChild(moreBtn);
   messageDiv.appendChild(actions);
 }
 
