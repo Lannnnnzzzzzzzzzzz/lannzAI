@@ -299,10 +299,14 @@ async function sendMessage(regenerate = false) {
   }
 
   if (!regenerate) {
-    addMessage(text, 'user');
-    messageHistory.push({ role: 'user', content: text });
+    const timestamp = new Date().toISOString();
+    addMessage(text, 'user', timestamp);
+    messageHistory.push({ role: 'user', content: text, timestamp });
     elements.userInput.value = '';
     elements.userInput.style.height = 'auto';
+  } else {
+    const lastUserMsg = messageHistory[messageHistory.length - 1];
+    text = lastUserMsg?.content || '';
   }
 
   elements.sendBtn.disabled = true;
@@ -373,8 +377,20 @@ async function sendMessage(regenerate = false) {
     }
 
     if (fullText) {
-      messageHistory.push({ role: 'assistant', content: fullText });
-      addMessageActions(messageDiv);
+      const timestamp = new Date().toISOString();
+      messageHistory.push({ role: 'assistant', content: fullText, timestamp });
+
+      const contentWrapper = messageDiv.querySelector('.message-content-wrapper');
+      if (!contentWrapper.querySelector('.message-actions')) {
+        const actions = createMessageActions(messageDiv, fullText);
+        contentWrapper.appendChild(actions);
+      }
+
+      const time = document.createElement('div');
+      time.className = 'message-timestamp';
+      time.textContent = 'Baru saja';
+      contentWrapper.appendChild(time);
+
       await saveChatToSupabase();
       await loadChatHistory();
     }
@@ -391,7 +407,7 @@ async function sendMessage(regenerate = false) {
   }
 }
 
-function addMessage(text, sender) {
+function addMessage(text, sender, timestamp = null) {
   const messageDiv = document.createElement('div');
   messageDiv.className = `message ${sender}`;
 
@@ -414,9 +430,15 @@ function addMessage(text, sender) {
   contentWrapper.appendChild(content);
 
   if (sender === 'bot') {
-    const actions = createMessageActions(messageDiv);
+    const actions = createMessageActions(messageDiv, text);
     contentWrapper.appendChild(actions);
   }
+
+  const time = document.createElement('div');
+  time.className = 'message-timestamp';
+  const date = timestamp ? new Date(timestamp) : new Date();
+  time.textContent = formatTime(date);
+  contentWrapper.appendChild(time);
 
   messageDiv.appendChild(avatar);
   messageDiv.appendChild(contentWrapper);
@@ -425,7 +447,27 @@ function addMessage(text, sender) {
   elements.chatContainer.scrollTop = elements.chatContainer.scrollHeight;
 }
 
-function createMessageActions(messageDiv) {
+function formatTime(date) {
+  const now = new Date();
+  const diff = now - date;
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+
+  if (minutes < 1) return 'Baru saja';
+  if (minutes < 60) return `${minutes} menit yang lalu`;
+  if (hours < 24) return `${hours} jam yang lalu`;
+  if (days < 7) return `${days} hari yang lalu`;
+
+  return date.toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+function createMessageActions(messageDiv, messageText) {
   const actions = document.createElement('div');
   actions.className = 'message-actions';
 
@@ -441,12 +483,13 @@ function createMessageActions(messageDiv) {
   `;
   copyBtn.onclick = () => {
     const content = messageDiv.querySelector('.message-content');
-    navigator.clipboard.writeText(content.textContent);
+    navigator.clipboard.writeText(messageText || content.textContent);
     copyBtn.innerHTML = `
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <polyline points="20 6 9 17 4 12"></polyline>
       </svg>
     `;
+    copyBtn.title = 'Copied!';
     setTimeout(() => {
       copyBtn.innerHTML = `
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -454,6 +497,7 @@ function createMessageActions(messageDiv) {
           <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
         </svg>
       `;
+      copyBtn.title = 'Copy';
     }, 2000);
   };
 
@@ -466,6 +510,11 @@ function createMessageActions(messageDiv) {
       <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
     </svg>
   `;
+  likeBtn.onclick = () => {
+    likeBtn.style.color = 'var(--accent-color)';
+    dislikeBtn.style.color = '';
+    console.log('Response liked:', messageText.substring(0, 50));
+  };
 
   // Dislike button
   const dislikeBtn = document.createElement('button');
@@ -476,6 +525,11 @@ function createMessageActions(messageDiv) {
       <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"></path>
     </svg>
   `;
+  dislikeBtn.onclick = () => {
+    dislikeBtn.style.color = '#ef4444';
+    likeBtn.style.color = '';
+    console.log('Response disliked:', messageText.substring(0, 50));
+  };
 
   // Share button
   const shareBtn = document.createElement('button');
@@ -488,6 +542,24 @@ function createMessageActions(messageDiv) {
       <line x1="12" y1="2" x2="12" y2="15"></line>
     </svg>
   `;
+  shareBtn.onclick = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'LannZAi Response',
+          text: messageText
+        });
+      } catch (err) {
+        console.log('Share cancelled');
+      }
+    } else {
+      navigator.clipboard.writeText(messageText);
+      shareBtn.title = 'Copied to clipboard!';
+      setTimeout(() => {
+        shareBtn.title = 'Share';
+      }, 2000);
+    }
+  };
 
   // Regenerate button
   const regenerateBtn = document.createElement('button');
@@ -498,7 +570,13 @@ function createMessageActions(messageDiv) {
       <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"></path>
     </svg>
   `;
-  regenerateBtn.onclick = () => sendMessage(true);
+  regenerateBtn.onclick = async () => {
+    if (messageHistory.length > 0) {
+      messageHistory.pop();
+      messageDiv.remove();
+      await sendMessage(true);
+    }
+  };
 
   // More button
   const moreBtn = document.createElement('button');
@@ -573,7 +651,7 @@ async function loadChat(chat) {
   elements.welcomeScreen.style.display = 'none';
 
   messageHistory.forEach(msg => {
-    addMessage(msg.content, msg.role === 'user' ? 'user' : 'bot');
+    addMessage(msg.content, msg.role === 'user' ? 'user' : 'bot', msg.timestamp);
   });
 
   document.querySelectorAll('.history-item').forEach(item => {
@@ -581,6 +659,39 @@ async function loadChat(chat) {
   });
   event.target.classList.add('active');
 }
+
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === 'k') {
+      e.preventDefault();
+      elements.searchInput.focus();
+    }
+    if (e.key === 'n') {
+      e.preventDefault();
+      startNewChat();
+    }
+  }
+  if (e.key === 'Escape') {
+    if (elements.templatesModal.classList.contains('active')) {
+      elements.templatesModal.classList.remove('active');
+    }
+    if (elements.addTemplateModal.classList.contains('active')) {
+      elements.addTemplateModal.classList.remove('active');
+    }
+    if (elements.exportModal.classList.contains('active')) {
+      elements.exportModal.classList.remove('active');
+    }
+  }
+});
+
+setInterval(() => {
+  document.querySelectorAll('.message-timestamp').forEach((el, idx) => {
+    const msg = messageHistory[idx];
+    if (msg?.timestamp) {
+      el.textContent = formatTime(new Date(msg.timestamp));
+    }
+  });
+}, 60000);
 
 initTheme();
 loadChatHistory();
